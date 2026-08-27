@@ -61,8 +61,14 @@ begin
   -- other callers using the same key, so unrelated transfers still run in
   -- parallel. (A plain `select sum(...) for update` is not an option -
   -- Postgres rejects FOR UPDATE alongside an aggregate.)
+  --
+  -- The ::int casts are REQUIRED. pg_advisory_xact_lock comes in exactly two
+  -- forms - (bigint) and (int, int). There is no (bigint, bigint), so the
+  -- uncast call fails at RUNTIME with "function ... does not exist". It does
+  -- not fail at CREATE time, because plpgsql bodies are only parsed when
+  -- executed - a create that "succeeds" proves nothing.
   ----------------------------------------------------------------
-  perform pg_advisory_xact_lock(p_item_id, p_from);
+  perform pg_advisory_xact_lock(p_item_id::int, p_from::int);
 
   select coalesce(sum(quantity), 0)
     into v_on_hand
