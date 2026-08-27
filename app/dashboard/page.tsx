@@ -21,6 +21,23 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  // head: true returns the count with no rows - we want the number, not the
+  // data. RLS means these are THIS user's counts, not everyone's.
+  const [items, warehouses, movements] = await Promise.all([
+    supabase.from("items").select("id", { count: "exact", head: true }),
+    supabase.from("warehouses").select("id", { count: "exact", head: true }),
+    supabase.from("stock_movements").select("id", { count: "exact", head: true }),
+  ]);
+
+  const itemCount = items.count ?? 0;
+  const warehouseCount = warehouses.count ?? 0;
+  const movementCount = movements.count ?? 0;
+
+  // A brand new account owns nothing, because every policy is keyed on
+  // owner_id. That is correct behaviour, but an empty app with no
+  // instructions is a dead end - so tell them what order to do things in.
+  const isNewAccount = itemCount === 0 || warehouseCount === 0;
+
   return (
     <main style={{ padding: 24, fontFamily: "sans-serif", lineHeight: 1.5 }}>
       <h1>Dashboard</h1>
@@ -30,18 +47,65 @@ export default async function DashboardPage() {
 
       <SignOutButton />
 
+      {isNewAccount ? (
+        <>
+          <h2>Start here</h2>
+          <p style={{ maxWidth: 560 }}>
+            This account is empty. You only ever see your own data, so a new
+            account starts with nothing. Do these in order:
+          </p>
+          <ol style={{ maxWidth: 560 }}>
+            <li>
+              <Link href="/warehouses">Create a warehouse</Link>
+              {warehouseCount > 0 ? " — done" : ""} &mdash; make two if you want
+              to try a transfer
+            </li>
+            <li>
+              <Link href="/items">Create an item</Link>
+              {itemCount > 0 ? " — done" : ""}
+            </li>
+            <li>
+              On <Link href="/items">Items</Link>, press{" "}
+              <strong>Movements</strong> next to that item and record a RECEIPT,
+              so there is stock to move
+            </li>
+            <li>
+              <Link href="/transfers">Transfer</Link> some of it to your second
+              warehouse
+            </li>
+            <li>
+              Confirm the <Link href="/report">Report</Link> reflects it
+            </li>
+          </ol>
+        </>
+      ) : (
+        <>
+          <h2>Your data</h2>
+          <ul>
+            <li>{itemCount} items</li>
+            <li>{warehouseCount} warehouses</li>
+            <li>{movementCount} stock movements</li>
+          </ul>
+        </>
+      )}
+
       <h2>Screens</h2>
       <ul>
         <li>
-          <Link href="/items">Items</Link>
+          <Link href="/items">Items</Link> &mdash; create, edit, deactivate,
+          record movements
         </li>
         <li>
           <Link href="/warehouses">Warehouses</Link>
         </li>
         <li>
-          <Link href="/transfers">Transfers</Link>
+          <Link href="/transfers">Transfers</Link> &mdash; move stock between
+          warehouses
         </li>
-        <li>Report &mdash; Stage 6</li>
+        <li>
+          <Link href="/report">Report</Link> &mdash; stock on hand per item per
+          warehouse
+        </li>
       </ul>
     </main>
   );
