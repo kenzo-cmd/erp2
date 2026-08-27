@@ -56,6 +56,14 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_ROUTES.includes(pathname);
 
+  // API routes must NOT be redirected. A redirect to an HTML login page is a
+  // useless answer to a fetch() - the caller gets 307 and a page of markup
+  // where it expected JSON. Route handlers do their own auth check and
+  // return a proper 401. The session refresh above still applies to them.
+  if (pathname.startsWith("/api/")) {
+    return supabaseResponse;
+  }
+
   if (!claims && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

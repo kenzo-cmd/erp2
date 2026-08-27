@@ -35,8 +35,12 @@ export default async function DashboardPage() {
         <li>
           <Link href="/items">Items</Link>
         </li>
-        <li>Warehouses &mdash; Stage 5</li>
-        <li>Transfers &mdash; Stage 5</li>
+        <li>
+          <Link href="/warehouses">Warehouses</Link>
+        </li>
+        <li>
+          <Link href="/transfers">Transfers</Link>
+        </li>
         <li>Report &mdash; Stage 6</li>
       </ul>
     </main>
