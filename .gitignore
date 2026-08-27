@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# but DO commit the example, so a stranger knows what to provide
+!.env.example
