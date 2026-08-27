@@ -1,10 +1,57 @@
 "use client";
 
+// ============================================================
+// STAGE 3 built the table here, reading straight from Supabase in the
+// browser. Stage 5 added the create form and the row actions, which go
+// through /api/* so validation lives in one place.
+//
+// READS still go direct: RLS already restricts rows to their owner, so a
+// route handler in front of a plain SELECT would add a hop and enforce
+// nothing. WRITES go through the API.
+// ============================================================
+
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AppNav from "@/components/app-nav";
 import NewItemForm from "./new-item-form";
 import MovementPanel from "./movement-panel";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Item = {
   id: number;
@@ -36,12 +83,6 @@ export default function ItemsPage() {
   const [rowError, setRowError] = useState<string | null>(null);
   const [openMovementsFor, setOpenMovementsFor] = useState<number | null>(null);
 
-  // READS go straight to Supabase from the browser. That is not laziness:
-  // RLS already restricts rows to their owner, so a route handler in front of
-  // a plain SELECT would add a network hop and enforce nothing extra. WRITES
-  // go through /api/* because that is where validation and business rules
-  // live. This is the answer to "name two places the route handler is pure
-  // overhead" - reads like this one, and the warehouse dropdown.
   const load = useCallback(async () => {
     const supabase = createClient();
 
@@ -120,138 +161,246 @@ export default function ItemsPage() {
       .filter((m) => m.item_id === itemId)
       .reduce((sum, m) => sum + Number(m.quantity), 0);
 
+  const openItem = items.find((i) => i.id === openMovementsFor);
+
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", lineHeight: 1.5 }}>
-      <h1>Items</h1>
-      <p>
-        <Link href="/dashboard">&larr; Dashboard</Link>
-      </p>
+    <>
+      <AppNav />
+      <main className="mx-auto w-full max-w-6xl px-6 py-8">
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Items</h1>
 
-      <NewItemForm onCreated={load} />
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Add an item</CardTitle>
+            <CardDescription>
+              Code must be unique and cannot be changed afterwards.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NewItemForm onCreated={load} />
+          </CardContent>
+        </Card>
 
-      {loading && <p>Loading...</p>}
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>Could not load items: {error}</AlertDescription>
+          </Alert>
+        )}
+        {rowError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{rowError}</AlertDescription>
+          </Alert>
+        )}
 
-      {error && (
-        <p role="alert" style={{ color: "crimson" }}>
-          Could not load items: {error}
-        </p>
-      )}
+        <Card>
+          <CardHeader>
+            <CardTitle>All items</CardTitle>
+            <CardDescription>
+              {loading ? "Loading…" : `${items.length} item(s)`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!loading && items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No items yet. Add one above.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">On hand</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item) =>
+                      editingId === item.id ? (
+                        <TableRow key={item.id}>
+                          {/* Code is not editable - other paperwork refers
+                              to items by it. */}
+                          <TableCell className="font-mono text-xs">
+                            {item.code}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={draft.name}
+                              onChange={(e) =>
+                                setDraft({ ...draft, name: e.target.value })
+                              }
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={draft.item_type}
+                              onValueChange={(v) =>
+                                setDraft({ ...draft, item_type: v })
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="RAW_MATERIAL">
+                                  RAW_MATERIAL
+                                </SelectItem>
+                                <SelectItem value="WIP">WIP</SelectItem>
+                                <SelectItem value="FINISHED">FINISHED</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={draft.uom}
+                              onValueChange={(v) => setDraft({ ...draft, uom: v })}
+                            >
+                              <SelectTrigger className="h-8 w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PCS">PCS</SelectItem>
+                                <SelectItem value="LTR">LTR</SelectItem>
+                                <SelectItem value="KG">KG</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {totalOnHand(item.id)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={item.is_active ? "secondary" : "outline"}
+                            >
+                              {item.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="space-x-2 text-right">
+                            <Button size="sm" onClick={() => saveEdit(item.id)}>
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        <TableRow
+                          key={item.id}
+                          className={item.is_active ? "" : "opacity-55"}
+                        >
+                          <TableCell className="font-mono text-xs">
+                            {item.code}
+                          </TableCell>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.item_type}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.uom}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {totalOnHand(item.id)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={item.is_active ? "secondary" : "outline"}
+                            >
+                              {item.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="space-x-1 text-right whitespace-nowrap">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => startEdit(item)}
+                            >
+                              Edit
+                            </Button>
 
-      {rowError && (
-        <p role="alert" style={{ color: "crimson" }}>
-          {rowError}
-        </p>
-      )}
+                            {item.is_active ? (
+                              // AlertDialog, not Dialog: this is a
+                              // destructive-shaped action and deserves an
+                              // explicit confirmation.
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="ghost">
+                                    Deactivate
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Deactivate {item.code}?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      The row is kept and its stock history stays
+                                      intact &mdash; it is flagged inactive, not
+                                      deleted. You can reactivate it at any time.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => setActive(item.id, false)}
+                                    >
+                                      Deactivate
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setActive(item.id, true)}
+                              >
+                                Reactivate
+                              </Button>
+                            )}
 
-      {!loading && !error && items.length === 0 && <p>No items yet.</p>}
-
-      {items.length > 0 && (
-        <table border={1} cellPadding={6} style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Unit</th>
-              <th>On hand</th>
-              <th>Active</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) =>
-              editingId === item.id ? (
-                <tr key={item.id}>
-                  {/* Code is not editable - other paperwork refers to it. */}
-                  <td>{item.code}</td>
-                  <td>
-                    <input
-                      value={draft.name}
-                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={draft.item_type}
-                      onChange={(e) => setDraft({ ...draft, item_type: e.target.value })}
-                    >
-                      <option value="RAW_MATERIAL">RAW_MATERIAL</option>
-                      <option value="WIP">WIP</option>
-                      <option value="FINISHED">FINISHED</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select
-                      value={draft.uom}
-                      onChange={(e) => setDraft({ ...draft, uom: e.target.value })}
-                    >
-                      <option value="PCS">PCS</option>
-                      <option value="LTR">LTR</option>
-                      <option value="KG">KG</option>
-                    </select>
-                  </td>
-                  <td style={{ textAlign: "right" }}>{totalOnHand(item.id)}</td>
-                  <td>{item.is_active ? "yes" : "no"}</td>
-                  <td>
-                    <button type="button" onClick={() => saveEdit(item.id)}>
-                      Save
-                    </button>{" "}
-                    <button type="button" onClick={() => setEditingId(null)}>
-                      Cancel
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} style={{ opacity: item.is_active ? 1 : 0.5 }}>
-                  <td>{item.code}</td>
-                  <td>{item.name}</td>
-                  <td>{item.item_type}</td>
-                  <td>{item.uom}</td>
-                  <td style={{ textAlign: "right" }}>{totalOnHand(item.id)}</td>
-                  <td>{item.is_active ? "yes" : "no"}</td>
-                  <td>
-                    <button type="button" onClick={() => startEdit(item)}>
-                      Edit
-                    </button>{" "}
-                    <button
-                      type="button"
-                      onClick={() => setActive(item.id, !item.is_active)}
-                    >
-                      {item.is_active ? "Deactivate" : "Reactivate"}
-                    </button>{" "}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenMovementsFor(
-                          openMovementsFor === item.id ? null : item.id,
-                        )
-                      }
-                    >
-                      Movements
-                    </button>
-                  </td>
-                </tr>
-              ),
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setOpenMovementsFor(
+                                  openMovementsFor === item.id ? null : item.id,
+                                )
+                              }
+                            >
+                              Movements
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ),
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
-          </tbody>
-        </table>
-      )}
+          </CardContent>
+        </Card>
 
-      {openMovementsFor !== null &&
-        (() => {
-          const item = items.find((i) => i.id === openMovementsFor);
-          if (!item) return null;
-          return (
-            <MovementPanel
-              itemId={item.id}
-              itemCode={`${item.code} ${item.name}`}
-              warehouses={warehouses}
-              movements={movements.filter((m) => m.item_id === item.id)}
-              onRecorded={load}
-              onClose={() => setOpenMovementsFor(null)}
-            />
-          );
-        })()}
-    </main>
+        {openItem && (
+          <MovementPanel
+            itemId={openItem.id}
+            itemCode={`${openItem.code} — ${openItem.name}`}
+            warehouses={warehouses}
+            movements={movements.filter((m) => m.item_id === openItem.id)}
+            onRecorded={load}
+            onClose={() => setOpenMovementsFor(null)}
+          />
+        )}
+      </main>
+    </>
   );
 }

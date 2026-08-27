@@ -1,6 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function NewItemForm({ onCreated }: { onCreated: () => void }) {
   const [code, setCode] = useState("");
@@ -40,69 +51,68 @@ export default function NewItemForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        display: "flex",
-        gap: 8,
-        alignItems: "flex-end",
-        flexWrap: "wrap",
-        margin: "16px 0",
-        padding: 12,
-        border: "1px solid #ccc",
-      }}
-    >
-      <label>
-        Code
-        <br />
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="ITM-006"
-          required
-        />
-      </label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-2">
+          <Label htmlFor="item-code">Code</Label>
+          <Input
+            id="item-code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="ITM-006"
+            required
+          />
+        </div>
 
-      <label>
-        Name
-        <br />
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Brass Fitting"
-          required
-        />
-      </label>
+        <div className="space-y-2">
+          <Label htmlFor="item-name">Name</Label>
+          <Input
+            id="item-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Brass Fitting"
+            required
+          />
+        </div>
 
-      <label>
-        Type
-        <br />
-        <select value={itemType} onChange={(e) => setItemType(e.target.value)}>
-          <option value="RAW_MATERIAL">RAW_MATERIAL</option>
-          <option value="WIP">WIP</option>
-          <option value="FINISHED">FINISHED</option>
-        </select>
-      </label>
+        <div className="space-y-2">
+          <Label htmlFor="item-type">Type</Label>
+          <Select value={itemType} onValueChange={setItemType}>
+            <SelectTrigger id="item-type" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="RAW_MATERIAL">Raw material</SelectItem>
+              <SelectItem value="WIP">Work in progress</SelectItem>
+              <SelectItem value="FINISHED">Finished</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      <label>
-        Unit
-        <br />
-        <select value={uom} onChange={(e) => setUom(e.target.value)}>
-          <option value="PCS">PCS</option>
-          <option value="LTR">LTR</option>
-          <option value="KG">KG</option>
-        </select>
-      </label>
-
-      <button type="submit" disabled={pending}>
-        {pending ? "Adding..." : "Add item"}
-      </button>
+        <div className="space-y-2">
+          <Label htmlFor="item-uom">Unit</Label>
+          <Select value={uom} onValueChange={setUom}>
+            <SelectTrigger id="item-uom" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PCS">PCS</SelectItem>
+              <SelectItem value="LTR">LTR</SelectItem>
+              <SelectItem value="KG">KG</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {error && (
-        <p role="alert" style={{ color: "crimson", width: "100%", margin: 0 }}>
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
+
+      <Button type="submit" disabled={pending}>
+        {pending ? "Adding…" : "Add item"}
+      </Button>
     </form>
   );
 }

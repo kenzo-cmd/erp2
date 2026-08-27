@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import SignOutButton from "../sign-out-button";
+import AppNav from "@/components/app-nav";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 // Server Component, and an async one. It can await a database call directly -
 // that is the thing a Client Component cannot do.
@@ -38,75 +46,129 @@ export default async function DashboardPage() {
   // instructions is a dead end - so tell them what order to do things in.
   const isNewAccount = itemCount === 0 || warehouseCount === 0;
 
+  const stats = [
+    { label: "Items", value: itemCount, href: "/items" },
+    { label: "Warehouses", value: warehouseCount, href: "/warehouses" },
+    { label: "Stock movements", value: movementCount, href: "/report" },
+  ];
+
+  const steps = [
+    {
+      done: warehouseCount > 0,
+      body: (
+        <>
+          <Link href="/warehouses" className="underline underline-offset-4">
+            Create a warehouse
+          </Link>{" "}
+          &mdash; make two if you want to try a transfer
+        </>
+      ),
+    },
+    {
+      done: itemCount > 0,
+      body: (
+        <Link href="/items" className="underline underline-offset-4">
+          Create an item
+        </Link>
+      ),
+    },
+    {
+      done: movementCount > 0,
+      body: (
+        <>
+          On{" "}
+          <Link href="/items" className="underline underline-offset-4">
+            Items
+          </Link>
+          , press <strong>Movements</strong> and record a receipt, so there is
+          stock to move
+        </>
+      ),
+    },
+    {
+      done: false,
+      body: (
+        <>
+          <Link href="/transfers" className="underline underline-offset-4">
+            Transfer
+          </Link>{" "}
+          some of it to your second warehouse
+        </>
+      ),
+    },
+    {
+      done: false,
+      body: (
+        <>
+          Confirm the{" "}
+          <Link href="/report" className="underline underline-offset-4">
+            report
+          </Link>{" "}
+          reflects it
+        </>
+      ),
+    },
+  ];
+
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", lineHeight: 1.5 }}>
-      <h1>Dashboard</h1>
-      <p>
-        Signed in as <strong>{String(claims.email)}</strong>
-      </p>
-
-      <SignOutButton />
-
-      {isNewAccount ? (
-        <>
-          <h2>Start here</h2>
-          <p style={{ maxWidth: 560 }}>
-            This account is empty. You only ever see your own data, so a new
-            account starts with nothing. Do these in order:
+    <>
+      <AppNav />
+      <main className="mx-auto w-full max-w-6xl px-6 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Signed in as {String(claims.email)}
           </p>
-          <ol style={{ maxWidth: 560 }}>
-            <li>
-              <Link href="/warehouses">Create a warehouse</Link>
-              {warehouseCount > 0 ? " — done" : ""} &mdash; make two if you want
-              to try a transfer
-            </li>
-            <li>
-              <Link href="/items">Create an item</Link>
-              {itemCount > 0 ? " — done" : ""}
-            </li>
-            <li>
-              On <Link href="/items">Items</Link>, press{" "}
-              <strong>Movements</strong> next to that item and record a RECEIPT,
-              so there is stock to move
-            </li>
-            <li>
-              <Link href="/transfers">Transfer</Link> some of it to your second
-              warehouse
-            </li>
-            <li>
-              Confirm the <Link href="/report">Report</Link> reflects it
-            </li>
-          </ol>
-        </>
-      ) : (
-        <>
-          <h2>Your data</h2>
-          <ul>
-            <li>{itemCount} items</li>
-            <li>{warehouseCount} warehouses</li>
-            <li>{movementCount} stock movements</li>
-          </ul>
-        </>
-      )}
+        </div>
 
-      <h2>Screens</h2>
-      <ul>
-        <li>
-          <Link href="/items">Items</Link> &mdash; create, edit, deactivate,
-          record movements
-        </li>
-        <li>
-          <Link href="/warehouses">Warehouses</Link>
-        </li>
-        <li>
-          <Link href="/transfers">Transfers</Link> &mdash; move stock between
-          warehouses
-        </li>
-        <li>
-          <Link href="/report">Report</Link> &mdash; stock on hand per item per
-          warehouse
-        </li>
-      </ul>
-    </main>
+        {isNewAccount ? (
+          <Card className="max-w-2xl">
+            <CardHeader>
+              <CardTitle>Start here</CardTitle>
+              <CardDescription>
+                This account is empty. You only ever see your own data, so a new
+                account starts with nothing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-3 text-sm">
+                {steps.map((step, index) => (
+                  <li key={index} className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium">
+                      {step.done ? "✓" : index + 1}
+                    </span>
+                    <span
+                      className={
+                        step.done ? "text-muted-foreground line-through" : ""
+                      }
+                    >
+                      {step.body}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {stats.map((stat) => (
+              <Card key={stat.label}>
+                <CardHeader className="pb-2">
+                  <CardDescription>{stat.label}</CardDescription>
+                  <CardTitle className="text-3xl tabular-nums">
+                    {stat.value}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={stat.href}>View</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </main>
+    </>
   );
 }

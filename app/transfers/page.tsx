@@ -1,8 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AppNav from "@/components/app-nav";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Item = { id: number; code: string; name: string };
 type Warehouse = { id: number; code: string; name: string };
@@ -82,92 +100,113 @@ export default function TransfersPage() {
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", lineHeight: 1.5 }}>
-      <h1>Transfer stock</h1>
-      <p>
-        <Link href="/dashboard">&larr; Dashboard</Link>
-      </p>
+    <>
+      <AppNav />
+      <main className="mx-auto w-full max-w-xl px-6 py-8">
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">
+          Transfer stock
+        </h1>
 
-      <p style={{ maxWidth: 560 }}>
-        Moves quantity from one warehouse to another. This writes two rows
-        &mdash; one leaving, one arriving &mdash; through a database function,
-        so both happen or neither does.
-      </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Move stock between warehouses</CardTitle>
+            <CardDescription>
+              Writes two rows &mdash; one leaving, one arriving &mdash; through a
+              database function, so both happen or neither does.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tr-item">Item</Label>
+                  <Select value={itemId} onValueChange={setItemId}>
+                    <SelectTrigger id="tr-item" className="w-full">
+                      <SelectValue placeholder="Choose an item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {items.map((i) => (
+                        <SelectItem key={i.id} value={String(i.id)}>
+                          {i.code} — {i.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <form
-          onSubmit={handleSubmit}
-          style={{ display: "grid", gap: 8, maxWidth: 360, padding: 12, border: "1px solid #ccc" }}
-        >
-          <label>
-            Item
-            <br />
-            <select value={itemId} onChange={(e) => setItemId(e.target.value)} required>
-              <option value="">-- choose --</option>
-              {items.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.code} &mdash; {i.name}
-                </option>
-              ))}
-            </select>
-          </label>
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <Label htmlFor="tr-from">From warehouse</Label>
+                    {onHandAtSource !== null && (
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        on hand: {onHandAtSource}
+                      </span>
+                    )}
+                  </div>
+                  <Select value={fromId} onValueChange={setFromId}>
+                    <SelectTrigger id="tr-from" className="w-full">
+                      <SelectValue placeholder="Choose a source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={String(w.id)}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <label>
-            From warehouse
-            <br />
-            <select value={fromId} onChange={(e) => setFromId(e.target.value)} required>
-              <option value="">-- choose --</option>
-              {warehouses.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-            {onHandAtSource !== null && (
-              <span style={{ marginLeft: 8 }}>on hand: {onHandAtSource}</span>
+                <div className="space-y-2">
+                  <Label htmlFor="tr-to">To warehouse</Label>
+                  <Select value={toId} onValueChange={setToId}>
+                    <SelectTrigger id="tr-to" className="w-full">
+                      <SelectValue placeholder="Choose a destination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={String(w.id)}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tr-qty">Quantity</Label>
+                  <Input
+                    id="tr-qty"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                {notice && (
+                  <Alert>
+                    <AlertDescription>{notice}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button type="submit" disabled={pending} className="w-full">
+                  {pending ? "Transferring…" : "Transfer"}
+                </Button>
+              </form>
             )}
-          </label>
-
-          <label>
-            To warehouse
-            <br />
-            <select value={toId} onChange={(e) => setToId(e.target.value)} required>
-              <option value="">-- choose --</option>
-              {warehouses.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Quantity
-            <br />
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              required
-            />
-          </label>
-
-          <button type="submit" disabled={pending}>
-            {pending ? "Transferring..." : "Transfer"}
-          </button>
-
-          {error && (
-            <p role="alert" style={{ color: "crimson" }}>
-              {error}
-            </p>
-          )}
-          {notice && <p role="status">{notice}</p>}
-        </form>
-      )}
-    </main>
+          </CardContent>
+        </Card>
+      </main>
+    </>
   );
 }

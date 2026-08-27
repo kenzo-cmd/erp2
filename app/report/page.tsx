@@ -1,6 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import AppNav from "@/components/app-nav";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type Row = {
   item_code: string;
@@ -10,9 +28,9 @@ type Row = {
   on_hand: number;
 };
 
-// A Server Component, and the only screen with no Client Component at all.
-// It displays data and nothing else - no useState, no onClick - so every
-// line of it runs on the server and the browser receives finished HTML.
+// A Server Component, and the only screen with no Client Component of its own
+// besides the shared nav. It displays data and nothing else - no useState, no
+// onClick - so the browser receives finished HTML.
 export default async function ReportPage() {
   const supabase = await createClient();
 
@@ -28,51 +46,85 @@ export default async function ReportPage() {
     .order("warehouse_name");
 
   const rows = (data ?? []) as Row[];
+  const total = rows.reduce((sum, r) => sum + Number(r.on_hand), 0);
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", lineHeight: 1.5 }}>
-      <h1>Stock on hand</h1>
-      <p>
-        <Link href="/dashboard">&larr; Dashboard</Link>
-      </p>
+    <>
+      <AppNav />
+      <main className="mx-auto w-full max-w-5xl px-6 py-8">
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">
+          Stock on hand
+        </h1>
 
-      {error && (
-        <p role="alert" style={{ color: "crimson" }}>
-          Could not load the report: {error.message}
-        </p>
-      )}
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              Could not load the report: {error.message}
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {!error && rows.length === 0 && (
-        <p>
-          Nothing in stock yet. Record a receipt from{" "}
-          <Link href="/items">Items</Link>.
-        </p>
-      )}
-
-      {rows.length > 0 && (
-        <table border={1} cellPadding={6} style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>Item code</th>
-              <th>Item</th>
-              <th>Warehouse</th>
-              <th>On hand</th>
-              <th>Unit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={`${row.item_code}-${row.warehouse_name}`}>
-                <td>{row.item_code}</td>
-                <td>{row.item_name}</td>
-                <td>{row.warehouse_name}</td>
-                <td style={{ textAlign: "right" }}>{Number(row.on_hand)}</td>
-                <td>{row.uom}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+        <Card>
+          <CardHeader>
+            <CardTitle>Per item, per warehouse</CardTitle>
+            <CardDescription>
+              {rows.length} row(s)
+              {rows.length > 0 && (
+                <>
+                  {" · "}
+                  <span className="tabular-nums">{total}</span> units total
+                </>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!error && rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing in stock yet. Record a receipt from{" "}
+                <Link href="/items" className="underline underline-offset-4">
+                  Items
+                </Link>
+                .
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Warehouse</TableHead>
+                      <TableHead className="text-right">On hand</TableHead>
+                      <TableHead>Unit</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={`${row.item_code}-${row.warehouse_name}`}>
+                        <TableCell className="font-mono text-xs">
+                          {row.item_code}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {row.item_name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {row.warehouse_name}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {Number(row.on_hand)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{row.uom}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </>
   );
 }
