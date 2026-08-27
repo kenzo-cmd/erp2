@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "../sign-out-button";
@@ -31,7 +32,9 @@ export default async function DashboardPage() {
 
       <h2>Screens</h2>
       <ul>
-        <li>Items &mdash; Stage 3</li>
+        <li>
+          <Link href="/items">Items</Link>
+        </li>
         <li>Warehouses &mdash; Stage 5</li>
         <li>Transfers &mdash; Stage 5</li>
         <li>Report &mdash; Stage 6</li>
