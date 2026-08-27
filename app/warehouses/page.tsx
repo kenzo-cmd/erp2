@@ -1,8 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AppNav from "@/components/app-nav";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type Warehouse = { id: number; code: string; name: string; is_active: boolean };
 
@@ -60,85 +80,107 @@ export default function WarehousesPage() {
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", lineHeight: 1.5 }}>
-      <h1>Warehouses</h1>
-      <p>
-        <Link href="/dashboard">&larr; Dashboard</Link>
-      </p>
+    <>
+      <AppNav />
+      <main className="mx-auto w-full max-w-4xl px-6 py-8">
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Warehouses</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: "flex",
-          gap: 8,
-          alignItems: "flex-end",
-          flexWrap: "wrap",
-          margin: "16px 0",
-          padding: 12,
-          border: "1px solid #ccc",
-        }}
-      >
-        <label>
-          Code
-          <br />
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="WH-BDG"
-            required
-          />
-        </label>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Add a warehouse</CardTitle>
+            <CardDescription>
+              You need at least two to move stock between them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="wh-code">Code</Label>
+                  <Input
+                    id="wh-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="WH-BDG"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wh-name">Name</Label>
+                  <Input
+                    id="wh-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Bandung Transit"
+                    required
+                  />
+                </div>
+              </div>
 
-        <label>
-          Name
-          <br />
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Bandung Transit"
-            required
-          />
-        </label>
+              {formError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
 
-        <button type="submit" disabled={pending}>
-          {pending ? "Adding..." : "Add warehouse"}
-        </button>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Adding…" : "Add warehouse"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-        {formError && (
-          <p role="alert" style={{ color: "crimson", width: "100%", margin: 0 }}>
-            {formError}
-          </p>
+        {loadError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              Could not load warehouses: {loadError}
+            </AlertDescription>
+          </Alert>
         )}
-      </form>
 
-      {loading && <p>Loading...</p>}
-      {loadError && (
-        <p role="alert" style={{ color: "crimson" }}>
-          Could not load warehouses: {loadError}
-        </p>
-      )}
-      {!loading && !loadError && warehouses.length === 0 && <p>No warehouses yet.</p>}
-
-      {warehouses.length > 0 && (
-        <table border={1} cellPadding={6} style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Active</th>
-            </tr>
-          </thead>
-          <tbody>
-            {warehouses.map((w) => (
-              <tr key={w.id}>
-                <td>{w.code}</td>
-                <td>{w.name}</td>
-                <td>{w.is_active ? "yes" : "no"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+        <Card>
+          <CardHeader>
+            <CardTitle>All warehouses</CardTitle>
+            <CardDescription>
+              {loading ? "Loading…" : `${warehouses.length} warehouse(s)`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!loading && warehouses.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No warehouses yet. Add one above.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {warehouses.map((w) => (
+                      <TableRow key={w.id}>
+                        <TableCell className="font-mono text-xs">
+                          {w.code}
+                        </TableCell>
+                        <TableCell className="font-medium">{w.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={w.is_active ? "secondary" : "outline"}>
+                            {w.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </>
   );
 }

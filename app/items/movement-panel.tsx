@@ -1,6 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type Warehouse = { id: number; code: string; name: string };
 type Movement = {
@@ -78,107 +106,143 @@ export default function MovementPanel({
   }
 
   return (
-    <div style={{ border: "2px solid #333", padding: 12, margin: "8px 0" }}>
-      <h3 style={{ marginTop: 0 }}>
-        Stock movements &mdash; {itemCode}{" "}
-        <button type="button" onClick={onClose} style={{ marginLeft: 8 }}>
-          close
-        </button>
-      </h3>
+    <Card className="mt-6">
+      <CardHeader className="flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle>Stock movements</CardTitle>
+          <CardDescription>{itemCode}</CardDescription>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </CardHeader>
 
-      <h4>On hand</h4>
-      <table border={1} cellPadding={4} style={{ borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th>Warehouse</th>
-            <th>On hand</th>
-          </tr>
-        </thead>
-        <tbody>
-          {onHandByWarehouse.map(({ warehouse, onHand }) => (
-            <tr key={warehouse.id}>
-              <td>{warehouse.name}</td>
-              <td style={{ textAlign: "right" }}>{onHand}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h4>Record a movement</h4>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <label>
-          Warehouse
-          <br />
-          <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} required>
-            {warehouses.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
+      <CardContent className="space-y-6">
+        <div>
+          <h4 className="mb-2 text-sm font-medium">On hand</h4>
+          <div className="flex flex-wrap gap-2">
+            {onHandByWarehouse.map(({ warehouse, onHand }) => (
+              <Badge key={warehouse.id} variant="secondary" className="text-sm">
+                {warehouse.name}
+                <span className="ml-2 tabular-nums font-semibold">{onHand}</span>
+              </Badge>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
 
-        <label>
-          Type
-          <br />
-          <select value={movementType} onChange={(e) => setMovementType(e.target.value)}>
-            <option value="RECEIPT">RECEIPT (in)</option>
-            <option value="ISSUE">ISSUE (out)</option>
-          </select>
-        </label>
+        <Separator />
 
-        <label>
-          Quantity
-          <br />
-          {/* Always a positive number. The server applies the sign from the
-              type - a user should never type a minus to mean "out". */}
-          <input
-            type="number"
-            min="0"
-            step="any"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            required
-          />
-        </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <h4 className="text-sm font-medium">Record a movement</h4>
 
-        <button type="submit" disabled={pending}>
-          {pending ? "Recording..." : "Record"}
-        </button>
-      </form>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="mv-warehouse">Warehouse</Label>
+              <Select value={warehouseId} onValueChange={setWarehouseId}>
+                <SelectTrigger id="mv-warehouse" className="w-full">
+                  <SelectValue placeholder="Choose" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((w) => (
+                    <SelectItem key={w.id} value={String(w.id)}>
+                      {w.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      {error && (
-        <p role="alert" style={{ color: "crimson" }}>
-          {error}
-        </p>
-      )}
-      {notice && <p role="status">{notice}</p>}
+            <div className="space-y-2">
+              <Label htmlFor="mv-type">Type</Label>
+              <Select value={movementType} onValueChange={setMovementType}>
+                <SelectTrigger id="mv-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RECEIPT">Receipt (in)</SelectItem>
+                  <SelectItem value="ISSUE">Issue (out)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <h4>History</h4>
-      {movements.length === 0 ? (
-        <p>No movements recorded for this item.</p>
-      ) : (
-        <table border={1} cellPadding={4} style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Warehouse</th>
-              <th>Type</th>
-              <th>Quantity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {movements.map((m) => (
-              <tr key={m.id}>
-                <td>{new Date(m.created_at).toLocaleString()}</td>
-                <td>{warehouseName(m.warehouse_id)}</td>
-                <td>{m.movement_type}</td>
-                <td style={{ textAlign: "right" }}>{Number(m.quantity)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+            <div className="space-y-2">
+              <Label htmlFor="mv-qty">Quantity</Label>
+              {/* Always a positive number. The server applies the sign from
+                  the type - a user should never type a minus to mean "out". */}
+              <Input
+                id="mv-qty"
+                type="number"
+                min="0"
+                step="any"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {notice && (
+            <Alert>
+              <AlertDescription>{notice}</AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" disabled={pending}>
+            {pending ? "Recording…" : "Record"}
+          </Button>
+        </form>
+
+        <Separator />
+
+        <div>
+          <h4 className="mb-2 text-sm font-medium">History</h4>
+          {movements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No movements recorded for this item.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>When</TableHead>
+                    <TableHead>Warehouse</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {movements.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(m.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>{warehouseName(m.warehouse_id)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            Number(m.quantity) >= 0 ? "secondary" : "outline"
+                          }
+                        >
+                          {m.movement_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {Number(m.quantity)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

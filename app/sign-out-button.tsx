@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 // Needs onClick, so it is a Client Component - but it is only a button.
 // Keeping it in its own file means /dashboard can stay a Server Component
@@ -17,8 +18,8 @@ export default function SignOutButton() {
   }
 
   return (
-    <button type="button" onClick={handleSignOut}>
+    <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
       Sign out
-    </button>
+    </Button>
   );
 }

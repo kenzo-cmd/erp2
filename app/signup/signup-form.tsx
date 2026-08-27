@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignupForm() {
   const [email, setEmail] = useState("");
@@ -44,40 +48,47 @@ export default function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "grid", gap: 8, maxWidth: 320 }}>
-      <label>
-        Email
-        <br />
-        <input
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           required
         />
-      </label>
+      </div>
 
-      <label>
-        Password
-        <br />
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
           minLength={6}
           required
         />
-      </label>
-
-      <button type="submit" disabled={pending}>
-        {pending ? "Creating account..." : "Create account"}
-      </button>
+        <p className="text-xs text-muted-foreground">At least 6 characters.</p>
+      </div>
 
       {error && (
-        <p role="alert" style={{ color: "crimson" }}>
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
-      {notice && <p role="status">{notice}</p>}
+      {notice && (
+        <Alert>
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      )}
+
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? "Creating account…" : "Create account"}
+      </Button>
     </form>
   );
 }
